@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 import click
+import json
 
 JIRA_BASE = os.environ.get("JIRA_BASE_URL")
 JIRA_EMAIL = os.environ.get("JIRA_EMAIL")
@@ -113,6 +114,27 @@ def create(ctx, summary, description):
         print(f"Created issue {key}: {url}")
     except Exception as e:
         click.echo(f"Error creating issue: {e}", err=True)
+        sys.exit(1)
+
+
+@cli.command()
+@click.option("--output", required=True, type=click.Path(writable=True), help="Output file to write issue details.")
+@click.option("--max", "max_results", default=None, type=int, help="Max issues to extract. If not set, extracts all issues.")
+@click.pass_context
+def extract(ctx, output, max_results):
+    """Extract all details from JIRA tickets and print to file."""
+    project = ctx.obj['PROJECT']
+    try:
+        issues = list_jira_issues(project, max_results)
+        # Extract all details for each issue
+        all_details = []
+        for issue in issues:
+            all_details.append(issue)  # The API response already contains all fields
+        with open(output, 'w', encoding='utf-8') as f:
+            json.dump(all_details, f, indent=2, ensure_ascii=False)
+        print(f"Extracted {len(all_details)} issues to {output}")
+    except Exception as e:
+        click.echo(f"Error extracting issues: {e}", err=True)
         sys.exit(1)
 
 
